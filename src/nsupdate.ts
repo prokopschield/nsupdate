@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { read } from 'doge-json';
 import fetch from 'node-fetch';
 import fs from 'fs';
