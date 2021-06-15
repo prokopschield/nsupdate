@@ -19,7 +19,7 @@ async function nsupdate () {
 		await run('sudo n -p lts');
 		for (const [ pkg, ver ] of Object.entries(yarn_packages)) {
 			const remote_version = await get_latest_version(pkg);
-			if (semver.compare(semver.coerce(`${ver}`) || '0.0.0', remote_version) === -1) {
+			if (semver.compare(semver.coerce(`${ver}`) || '0.0.0', remote_version || '0.0.0') === -1) {
 				console.log(`${pkg}: You have ${ver}, installing ${remote_version}`);
 				await run(`yarn global add ${pkg}`);
 			}
