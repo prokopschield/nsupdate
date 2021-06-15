@@ -9,7 +9,7 @@ import semver from 'semver';
 async function get_latest_version (pkg: string) {
 	return fetch(`https://api.npms.io/v2/package/${pkg}`)
 	.then(res => res.json())
-	.then(res => res.collected.metadata.version)
+	.then(res => res?.collected?.metadata?.version)
 }
 
 async function nsupdate () {
