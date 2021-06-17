@@ -13,12 +13,20 @@ async function get_latest_version (pkg: string) {
 	.then(res => res?.collected?.metadata?.version)
 }
 
-const yarn = path.resolve(__dirname, '..', 'node_modules', '.bin', 'yarn');
-
 async function nsupdate () {
 	try {
 		const { dependencies: yarn_packages } = read(`/usr/local/share/.config/yarn/global/package.json`);
-		if (!yarn_packages['n']) await run(`${yarn} global add n`);
+		let yarn = path.resolve(__dirname, '..', 'node_modules', '.bin', 'yarn');
+		if (!fs.existsSync(yarn)) yarn = path.resolve(__dirname, '..', '..', 'yarn', 'bin', 'yarn');
+		if (!fs.existsSync(yarn)) yarn = 'yarn';
+		for (const pkg of [
+			'n',
+			'nsupdate',
+			'yarn',
+			...process.argv.slice(2),
+		]) {
+			if (!yarn_packages[pkg]) await run(`${yarn} global add ${pkg}`);
+		}
 		await run('sudo n -p lts');
 		for (const [ pkg, ver ] of Object.entries(yarn_packages)) {
 			const remote_version = await get_latest_version(pkg);
