@@ -43,8 +43,13 @@ async function nsupdate () {
 			for (const pkg of npm_packages) {
 				await run(`${yarn} global add ${pkg}`)
 				.then(success => success && run(`sudo npm r -g ${pkg}`))
-				.then(success => success || run(`${yarn} global add ${pkg}`))
-				.then(success => success || run(`sudo npm i -g ${pkg}`))
+				.then(success => success || (
+					(fs.existsSync(yarn))
+					? (
+						run(`${yarn} global add ${pkg}`)
+						.then(() => run(`npm r -g ${pkg}`))
+					) : run(`npm i -g ${pkg}`)
+				))
 			}
 		} catch (error) {
 			console.log(`Could not detect any npm packages.`);
