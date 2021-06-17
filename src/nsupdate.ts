@@ -25,7 +25,10 @@ async function nsupdate () {
 			'yarn',
 			...process.argv.slice(2),
 		]) {
-			if (!yarn_packages[pkg]) await run(`${yarn} global add ${pkg}`);
+			if (!yarn_packages[pkg]) await run(`${yarn} global add ${pkg}`).then(success => success || (
+				console.log(`Failed to install ${pkg}`),
+				process.exit(0)
+			));
 		}
 		await run('sudo n -p lts');
 		for (const [ pkg, ver ] of Object.entries(yarn_packages)) {
@@ -35,10 +38,16 @@ async function nsupdate () {
 				await run(`${yarn} global add ${pkg}`);
 			}
 		}
-		const npm_packages = await fs.promises.readdir('/usr/local/lib/node_modules');
-		for (const pkg of npm_packages) {
-			await run(`sudo npm r -g ${pkg}`);
-			await run(`${yarn} global add ${pkg}`);
+		try {
+			const npm_packages = await fs.promises.readdir('/usr/local/lib/node_modules');
+			for (const pkg of npm_packages) {
+				await run(`${yarn} global add ${pkg}`)
+				.then(success => success && run(`sudo npm r -g ${pkg}`))
+				.then(success => success || run(`${yarn} global add ${pkg}`))
+				.then(success => success || run(`sudo npm i -g ${pkg}`))
+			}
+		} catch (error) {
+			console.log(`Could not detect any npm packages.`);
 		}
 		console.log(`Updated all packages.`);
 	} catch (error) {
