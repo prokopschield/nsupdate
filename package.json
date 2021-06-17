@@ -1,7 +1,7 @@
 {
 	"name": "nsupdate",
 	"description": "Update your global packages",
-	"version": "1.0.3",
+	"version": "1.0.5",
 	"main": "lib/nsupdate.js",
 	"bin": {
 		"nsupdate": "lib/nsupdate.js"
@@ -15,7 +15,8 @@
 		"doge-json": "^1.0.4",
 		"node-fetch": "^2.6.1",
 		"nslibmgr": "^0.1.2",
-		"semver": "^7.3.5"
+		"semver": "^7.3.5",
+		"yarn": "^1.22.10"
 	},
 	"devDependencies": {
 		"@types/node": ">=14",
