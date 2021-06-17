@@ -50,6 +50,7 @@ async function nsupdate () {
 						.then(() => run(`npm r -g ${pkg}`))
 					) : run(`npm i -g ${pkg}`)
 				))
+				.then(() => run(`${yarn} global add ${pkg}`))
 			}
 		} catch (error) {
 			console.log(`Could not detect any npm packages.`);
