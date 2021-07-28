@@ -2,7 +2,7 @@
 
 This simple script updates globally installed node packages.
 
-***Dependencies***: [yarn](<https://yarnpkg.com/>), [sudo](<https://en.wikipedia.org/wiki/Sudo>)
+**_Dependencies_**: [yarn](https://yarnpkg.com/), [sudo](https://en.wikipedia.org/wiki/Sudo)
 
 ### How to install
 
@@ -17,4 +17,4 @@ sudo yarn global add nsupdate
 sudo nsupdate
 ```
 
-***Only tested on GNU/Linux. Other systems are not and will not be supported.***
+**_Only tested on GNU/Linux. Other systems are not and will not be supported._**

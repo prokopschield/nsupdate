@@ -1,7 +1,7 @@
 {
 	"name": "nsupdate",
 	"description": "Update your global packages",
-	"version": "1.0.9",
+	"version": "1.0.10",
 	"main": "lib/nsupdate.js",
 	"bin": {
 		"nsupdate": "lib/nsupdate.js"
