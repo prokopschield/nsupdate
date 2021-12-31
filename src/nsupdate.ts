@@ -1,81 +1,152 @@
 #!/usr/bin/env node
 
 import { read } from 'doge-json';
-import fetch from 'node-fetch';
 import fs from 'fs';
-import run from 'nslibmgr/lib/run';
+import { manifest } from 'pacote';
 import path from 'path';
 import semver from 'semver';
+import logger from './logger';
+import run from './run';
 
 async function get_latest_version(pkg: string) {
-	return fetch(`https://api.npms.io/v2/package/${pkg}`)
-		.then((res) => res.json())
-		.then((res) => res?.collected?.metadata?.version);
+	return (await manifest(pkg)).version;
 }
 
 async function nsupdate() {
 	try {
-		let sudo = fs.existsSync('/bin/sudo') ? 'sudo ' : '';
-		const { dependencies: yarn_packages } = read(
-			`/usr/local/share/.config/yarn/global/package.json`
+		const mode =
+			process.getuid() && fs.existsSync('package.json') ? '' : 'global';
+
+		logger.info(`Running in ${mode || 'normal'} mode`);
+		const pkg_f = mode
+			? '/usr/local/share/.config/yarn/global/package.json'
+			: 'package.json';
+		const pkg = read(pkg_f) || {};
+		const dependencies = pkg.dependencies || {};
+
+		let yarn = path.resolve(
+			__dirname,
+			'..',
+			'node_modules',
+			'.bin',
+			'yarn'
 		);
-		let yarn =
-			sudo +
-			path.resolve(__dirname, '..', 'node_modules', '.bin', 'yarn');
 		if (!fs.existsSync(yarn))
 			yarn = path.resolve(__dirname, '..', '..', 'yarn', 'bin', 'yarn');
 		if (!fs.existsSync(yarn)) yarn = 'yarn';
-		for (const pkg of ['n', 'nsupdate', 'yarn', ...process.argv.slice(2)]) {
-			if (!yarn_packages[pkg])
-				await run(`${yarn} global add ${pkg}`).then(
-					(success) =>
-						success ||
-						(console.log(`Failed to install ${pkg}`),
-						process.exit(0))
-				);
+
+		let sudo =
+			(mode &&
+				process.getuid() &&
+				fs.existsSync('/bin/sudo') &&
+				'sudo ') ||
+			'';
+
+		for (const pkg of [
+			...(mode ? ['n', 'nsupdate', 'yarn'] : []),
+			...process.argv.slice(2),
+		]) {
+			if (!dependencies[pkg]) {
+				if (await run(`${sudo} ${yarn} ${mode} add ${pkg}`)) {
+					logger.success(`Installed ${pkg} successfully.`);
+				} else {
+					logger.warn(`Errors while installing ${pkg}.`);
+				}
+			}
 		}
-		await run(`${sudo}n -p lts`);
-		for (const [pkg, ver] of Object.entries(yarn_packages)) {
-			const remote_version = await get_latest_version(pkg);
+
+		if (mode) {
+			await run(`${sudo} n -p 14`);
+		}
+
+		logger.info(`Downloading package manifests!`);
+		const versions: [string, string, string][] = await Promise.all(
+			Object.entries(dependencies).map(async ([pkg, ver]) => [
+				pkg,
+				`${ver}`,
+				await get_latest_version(`${pkg}@${ver}`),
+			])
+		);
+		logger.info(`Finished downloading package manifests!`);
+
+		for (const [pkg, ver, nver] of versions) {
+			logger.info(`Checking if ${pkg}@${ver} is up to date...`);
 			if (
 				semver.compare(
 					semver.coerce(`${ver}`) || '0.0.0',
-					remote_version || '0.0.0'
+					nver || '0.0.0'
 				) === -1
 			) {
-				console.log(
-					`${pkg}: You have ${ver}, installing ${remote_version}`
+				logger.info(`${pkg}: You have ${ver}, installing ${nver}`);
+				if (await run(`${sudo} ${yarn} ${mode} add ${pkg}@^${nver}`)) {
+					logger.success(`Installed ${pkg} successfully.`);
+				} else {
+					logger.warn(`Errors while installing ${pkg}.`);
+				}
+			}
+		}
+
+		if (mode) {
+			try {
+				const npm_packages = await fs.promises.readdir(
+					'/usr/local/lib/node_modules'
 				);
-				await run(`${yarn} global add ${pkg}`);
+
+				for (const pkg of npm_packages) {
+					if (pkg[0] === '@' && !pkg.includes('/')) {
+						npm_packages.splice(pkg.indexOf(pkg), 1);
+						npm_packages.push(
+							...(
+								await fs.promises.readdir(
+									`/usr/local/lib/node_modules/${pkg}`
+								)
+							).map((a) => `${pkg}/${a}`)
+						);
+					}
+				}
+
+				for (const pkg of npm_packages) {
+					if (['corepack', 'npm'].includes(pkg)) {
+						logger.warn(`Skipping ${pkg}.`);
+					} else {
+						logger.info(`Attempting to convert ${pkg}...`);
+						if (await run(`${yarn} ${mode} add ${pkg}`)) {
+							logger.info(`Removing ${pkg} from npm...`);
+							if (await run(`${sudo} npm r -g ${pkg}`)) {
+								logger.success(`Removed ${pkg} from npm!`);
+							} else {
+								logger.warn(
+									`Error while removing ${pkg} from npm!`
+								);
+							}
+							if (await run(`${yarn} ${mode} add ${pkg}`)) {
+								logger.success(`Installed ${pkg} sucessfully!`);
+							} else {
+								logger.error(`Failed to install ${pkg}.`);
+							}
+						} else {
+							logger.error(`Could not install ${pkg}!`);
+						}
+					}
+				}
+			} catch (error) {
+				console.log(`Could not detect any npm packages.`);
+				console.error(error);
 			}
 		}
-		try {
-			const npm_packages = await fs.promises.readdir(
-				'/usr/local/lib/node_modules'
-			);
-			for (const pkg of npm_packages) {
-				await run(`${yarn} global add ${pkg}`)
-					.then((success) => success && run(`${sudo}npm r -g ${pkg}`))
-					.then(
-						(success) =>
-							success ||
-							(fs.existsSync(yarn)
-								? run(`${yarn} global add ${pkg}`).then(() =>
-										run(`npm r -g ${pkg}`)
-								  )
-								: run(`npm i -g ${pkg}`))
-					)
-					.then(() => run(`${yarn} global add ${pkg}`));
-			}
-		} catch (error) {
-			console.log(`Could not detect any npm packages.`);
-		}
-		console.log(`Updated all packages.`);
+		logger.info(`Done updating packages.`);
 	} catch (error) {
 		if (process.platform !== 'linux') {
-			console.log('This program is only available for GNU/Linux.');
+			logger.error('This program is only available for GNU/Linux.');
 		} else {
-			console.log(error);
+			if (
+				(error && typeof error === 'object') ||
+				typeof error === 'string'
+			) {
+				logger.error(
+					error && typeof error === 'object' ? error : `${error}`
+				);
+			}
 		}
 	}
 }
