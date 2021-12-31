@@ -20,7 +20,8 @@ async function nsupdate() {
 			`/usr/local/share/.config/yarn/global/package.json`
 		);
 		let yarn =
-			sudo + path.resolve(__dirname, '..', 'node_modules', '.bin', 'yarn');
+			sudo +
+			path.resolve(__dirname, '..', 'node_modules', '.bin', 'yarn');
 		if (!fs.existsSync(yarn))
 			yarn = path.resolve(__dirname, '..', '..', 'yarn', 'bin', 'yarn');
 		if (!fs.existsSync(yarn)) yarn = 'yarn';
@@ -29,7 +30,8 @@ async function nsupdate() {
 				await run(`${yarn} global add ${pkg}`).then(
 					(success) =>
 						success ||
-						(console.log(`Failed to install ${pkg}`), process.exit(0))
+						(console.log(`Failed to install ${pkg}`),
+						process.exit(0))
 				);
 		}
 		await run(`${sudo}n -p lts`);
@@ -41,7 +43,9 @@ async function nsupdate() {
 					remote_version || '0.0.0'
 				) === -1
 			) {
-				console.log(`${pkg}: You have ${ver}, installing ${remote_version}`);
+				console.log(
+					`${pkg}: You have ${ver}, installing ${remote_version}`
+				);
 				await run(`${yarn} global add ${pkg}`);
 			}
 		}
