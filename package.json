@@ -1,7 +1,7 @@
 {
 	"name": "nsupdate",
 	"description": "Update your global packages",
-	"version": "1.1.0",
+	"version": "1.1.2",
 	"main": "lib/nsupdate.js",
 	"bin": {
 		"nsupdate": "lib/nsupdate.js"
@@ -12,12 +12,12 @@
 	"author": "Prokop Schield",
 	"license": "GPL-3.0-or-later",
 	"dependencies": {
-		"@lvksh/logger": "^1.5.2",
+		"@prokopschield/lvksh-logger": "^1.5.3",
 		"chalk": "^4.1.2",
-		"pacote": "^12.0.2",
-		"require-gpl": "^0.1.0-2",
+		"pacote": "^12.0.3",
+		"require-gpl": "^0.1.2",
 		"semver": "^7.3.5",
-		"yarn": "^1.22.17"
+		"yarn": "^1.22.18"
 	},
 	"devDependencies": {
 		"@types/node": ">=14",

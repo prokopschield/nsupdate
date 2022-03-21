@@ -1,4 +1,4 @@
-import { createLogger } from '@lvksh/logger';
+import { createLogger } from '@prokopschield/lvksh-logger';
 import chalk from 'chalk';
 
 const logger = createLogger(
